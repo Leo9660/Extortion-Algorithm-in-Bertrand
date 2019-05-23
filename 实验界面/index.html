@@ -1,0 +1,640 @@
+<html>  
+<head>  
+	<meta charset="utf-8">  
+	<title>实验界面</title>  
+</head> 
+
+<style>
+	.axis path,
+	.axis line{
+		fill: none;
+		stroke: black;
+		shape-rendering: crispEdges;
+	}
+
+	.axis text {
+		font-family: sans-serif;
+		font-size: 11px;
+	}
+
+	.MyRect {
+
+	}
+
+	.MyText {
+		fill: black;
+		text-anchor: middle;
+	}
+	input[type=range]{ 
+		 margin-top: 8px;
+	         outline: none; 
+		 -webkit-appearance: none;/*清除系统默认样式*/  
+		 background: -webkit-linear-gradient(#61bd12, #61bd12) no-repeat, #ddd;  
+	         background-size: 100%;/*设置左右宽度比例*/  
+		height: 3px;/*横条的高度*/  
+	} 
+	/*拖动块的样式*/  
+	input[type=range]::-webkit-slider-thumb {  
+	-webkit-appearance: none;/*清除系统默认样式*/  
+	height:32px;/*拖动块高度*/  
+	width: 32px;/*拖动块宽度*/  
+	background:LightPink;/*拖动块背景*/  
+	border-radius: 50%; /*外观设置为圆形*/
+	border: solid 3px #ddd; /*设置边框*/  
+	 
+}
+</style>
+
+<body> 
+	<input type="range"  min="1" max="8" step="1" value="8" id="limit" style="width:500px;position:absolute;top:420px;left:70px;"  />
+	<script src="d3.js" charset="utf-8"></script>
+	<script>
+	document.write("<div id='tip' style='position:absolute; width:600px; z-index:1; background-color: #ffffff; border: 1px solid gray; overflow: visible;visibility: hidden;font-size:24px;padding:12px;color:#333333'></div>")
+	function showtip(w){
+	 var x=event.x;
+	 var y=event.y;
+	 tip.textContent=w;
+	 tip.style.visibility="visible";
+	 tip.style.left=x+10;
+	 tip.style.top=y+10;
+	  tip.style.pixelTop=y+document.body.scrollTop+10;
+	}
+	function hidetip(){
+	 tip.style.textContent=""
+	 tip.style.visibility="hidden";
+	}
+	/*实验指导界面*/
+	var width = 4000;
+	var height = 1600;
+
+	var svg = d3.select("body")
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+	
+	var formapos = {left:500, top:180}
+	var forma = new Array();
+	var formh = 100;
+	var formw = 180;
+	var rsetoff = 200;
+	var price = [{i:1},{i:2},{i:3},{i:4},{i:5},{i:6},{i:7},{i:8}];
+	
+	for (var x=1;x<=8;x++)
+	{
+		for (var y=1;y<=8;y++)
+		{
+			var q = "";
+			if (x < y) q = "0";
+			else if (x > y) q = payoff(y);
+			else q = payoff(x)/2;
+			forma[(x-1)*8+y-1] = {i:x-1,j:y-1,p:q};
+		}
+	}
+	//console.log(forma);
+	function payoff(x)
+	{
+		return (16-x)*(x-1);
+	}
+	
+
+
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("transform","translate(" + (1090+rsetoff) + "," + 60 + ")")
+		.attr("font-size",30)
+		.text("上一轮的博弈信息");
+		
+	/*----------------------------------------------------------------------------*/
+	
+	/*实验界面*/
+	var i = 0;
+	var punish = 0;
+	var punish_rounds = 2;
+	var rounds = 0;
+	var pm = 8;
+	var computer = new Array(500);
+	var human = new Array(500);
+	var my_score = new Array(500);
+	var computer_score = 0;
+	var human_score = 0;
+	var forgive = 3;
+	var consecutive = 0;
+	
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("fun",1)
+		.attr("transform","translate(" + 80 + "," + 50 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "第"+1+"轮";});
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("fun",1)
+		.attr("transform","translate(" + 110 + "," + 90 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "你的得分      " + computer_score;});
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("fun",1)
+		.attr("transform","translate(" + 140 + "," + 130 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "你对手的得分  " + human_score;});
+		
+	var buttons = [0, 1, 2, 0, 0, 1];
+	
+	var button = svg
+		.append("rect")
+		.attr("class","MyRect")
+		.attr("transform","translate(" + 200 + "," + 450 + ")")
+		.attr("width", formw*0.75 )
+		.attr("height", formh*0.75 )
+		.attr("rx",20)
+		.attr("ry",20)
+		.attr("stroke-width",5)
+		.attr("stroke","CornflowerBlue")
+		.attr("fill-opacity",0.1)
+        .attr("stroke-opacity",0.9)
+		.attr("fill","#8DEEEE")
+		.on("click", change);
+
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("fun",1)
+		.attr("transform","translate(" + 170 + "," + 170 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "你目前的平均得分  " + human_score;});
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("fun",1)
+		.attr("transform","translate(" + 170 + "," + 210 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "你目前的期望得分  " + human_score;});
+
+	var texts = svg
+		.append("text")
+		.attr("class","AverPro")
+		.attr("fun",1)
+		.attr("transform","translate(" + 40 + "," + 250 + ")")
+		.attr("font-size",30)
+		.text(function(d){return "你目前的期望收益  " + human_score;});
+		
+	var texts = svg.append("text")
+		.attr("class","Myprice")
+		.attr("font-size",30)
+		.attr("transform","translate(" + 70 + "," + 350 + ")")
+		.text("你下一轮将要选择的价格为：8");
+	
+	var texts = svg.append("text")
+		.attr("transform","translate(" + 235 + "," + 495 + ")")
+		.attr("font-size",30)
+		.text("确认")
+		.on("click", change);
+	
+	var texts = svg.append("text")
+		.attr("class","Mylastprice")
+		.attr("transform","translate(" + 920 + "," + 460 + ")")
+		.attr("font-size",30)
+		.text("售价：");
+	
+	var texts = svg.append("text")
+		.attr("class","Comlastprice")
+		.attr("transform","translate(" + 1520 + "," + 460 + ")")
+		.attr("font-size",30)
+		.text("售价：");
+	
+	var texts = svg.append("text")
+		.attr("class","Myprofit")
+		.attr("transform","translate(" + 960 + "," + 780 + ")")
+		.attr("font-size",30)
+		.text("");
+
+	var texts = svg.append("text")
+		.attr("class","Comprofit")
+		.attr("transform","translate(" + 1560 + "," + 780 + ")")
+		.attr("font-size",30)
+		.text("");
+		
+	var texts = svg.append("text")
+		.attr("class","Mytext")
+		.attr("transform","translate(" + 980 + "," + 160 + ")")
+		.attr("font-size",30)
+		.text("你的公司");
+	
+	var texts = svg.append("text")
+		.attr("class","Mytext")
+		.attr("transform","translate(" + 1595 + "," + 160 + ")")
+		.attr("font-size",30)
+		.text("对手的公司");
+	
+	var texts = svg.append("text")
+		.attr("class","Mytext")
+		.attr("transform","translate(" + 730 + "," + 600 + ")")
+		.attr("font-size",30)
+		.text("消费者：");
+		
+	var texts = svg.append("text")
+		.attr("class","Mytext")
+		.attr("transform","translate(" + 730 + "," + 780 + ")")
+		.attr("font-size",30)
+		.text("收益：");
+		
+	var img = svg.append('svg:image')
+		.attr("transform","translate(" + 900 + "," + 200 + ")")
+		.attr("height",200)
+		.attr("width",200)
+		.attr('href', 'src/1.png');
+
+	var img = svg.append('svg:image')
+		.attr("transform","translate(" + 1500 + "," + 200 + ")")
+		.attr("height",200)
+		.attr("width",200)
+		.attr('href', 'src/1.png');
+	
+	var img = svg.append('svg:image')
+		.attr("transform","translate(" + 1200 + "," + 200 + ")")
+		.attr("height",200)
+		.attr("width",200)
+		.attr('href', 'src/3.png');
+	
+	var img = svg.append('svg:image')
+		.attr("class","c1")
+		.attr("height",200)
+		.attr("width",200)
+		.attr("transform","translate(" + (-500) + "," + 0 + ")")
+		.attr('href', 'src/2.png');
+	
+	var img = svg.append('svg:image')
+		.attr("class","c2")
+		.attr("height",200)
+		.attr("width",200)
+		.attr("transform","translate(" + (-500) + "," + 0 + ")")
+		.attr('href', 'src/2.png');
+	
+	/*点击确认后，提交人类的选择，同时算法根据上一轮的结果进行选择*/
+	function change()
+	{
+		if (i<=499)
+		{
+			human[i] = parseInt(d3.select("#limit")[0][0].value);
+			
+			/*computer make desision*/
+			if (i == 0)
+			{
+				computer[i] = pm;
+			}
+			else
+			{
+				if (punish == 1)
+				{
+					computer[i] = 1;
+					rounds--;
+					if (rounds == 0)
+					{
+						punish = 0;
+					}
+				}
+				else
+				{
+					if (computer[i-1] > human[i-1])
+					{
+						punish = 1;
+						rounds = Math.floor(Math.random()*(punish_rounds-1)+2) - 1;
+						computer[i] = 1;
+						punish_rounds++;
+						consecutive = 0;
+					}
+					else
+					{
+						if (human[i-1] > pm)
+						{
+							computer[i] = pm;
+						}
+						else
+						{
+							var ran_numf = Math.random();
+							if (ran_numf < 0.8)
+								computer[i] = human[i-1];
+							else
+								computer[i] = human[i-1] - 1;
+							consecutive++;
+							if (consecutive == forgive)
+							{
+								consecutive = 0;
+								punish_rounds--;
+								if (punish_rounds < 2) punish_rounds = 2;
+							}
+						}						
+					}
+				}
+			}
+			if (computer[i]==0) computer[i] = 1;
+			if (parseInt(computer[i]) < parseInt(human[i]))
+			{
+				computer_score += payoff(computer[i]);
+				my_score[i] = 0;
+			}
+			else if (parseInt(computer[i]) > parseInt(human[i]))
+			{
+				my_score[i] = payoff(human[i]);
+				human_score += payoff(human[i]);
+			}
+			else
+			{
+				computer_score += payoff(computer[i]) / 2;
+				my_score[i] = payoff(human[i]) / 2;
+				human_score += payoff(human[i]) / 2;
+			}
+			i = i + 1;
+		}
+		if (i==500)
+		{
+		/*报酬数额弹窗，7000 20元-11000 120元 线性分布*/
+			var rewward = (100*(human_score-7000)*1.0/4000+20).toFixed(2);
+			rewward = (rewward < 20)?20.0:(rewward > 120)?120.0:rewward;
+			alert("实验完成\n你的最终得分  " + human_score + "\n你获得的相应报酬 " + rewward + "\n请不要关闭此页面，等待实验指导人员验收!");
+		}
+		else
+		{
+		/*根据先前结果更换用户交互界面*/
+			var text = svg.select(".Mylastprice")[0][0];
+			text.textContent = "售价：" + human[i-1];
+			text = svg.select(".Comlastprice")[0][0];
+			text.textContent = "售价：" + computer[i-1];
+			
+			var cp, hp;
+			var cc, hc;
+			
+			if (computer[i-1] > human[i-1])
+			{
+				hp = payoff(human[i-1]);
+				hc = "Red";
+				cp = 0;
+				cc = "Green";
+			}
+			else if (computer[i-1] < human[i-1])
+			{
+				hp = 0;
+				hc = "Green";
+				cp = payoff(computer[i-1]);
+				cc = "Red";
+			}
+			else
+			{
+				hp = cp = payoff(human[i-1])/2;
+				hc = cc = "OrangeRed";
+			}
+			text = svg.select(".Myprofit")[0][0];
+			svg.select(".Myprofit").attr("fill",hc);
+			text.textContent = hp;
+			text = svg.select(".Comprofit")[0][0];
+			svg.select(".Comprofit").attr("fill",cc);
+			text.textContent = cp;
+			
+			if (computer[i-1] == human[i-1])
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 900 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1500 + "," + 500 + ")");
+			}
+			else if (computer[i-1] > human[i-1])
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 800 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1000 + "," + 500 + ")");
+			}
+			else
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 1400 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1600 + "," + 500 + ")");			
+			}
+			
+			/*如果超过20轮则记录数据到本地，便于意外恢复*/
+			if (i>=20)
+			{
+				localStorage.setItem("computer", JSON.stringify(computer));
+				localStorage.setItem("human",JSON.stringify(human));
+				localStorage.setItem("i",i);
+				localStorage.setItem("human_score",human_score);
+				localStorage.setItem("computer_score",computer_score);
+				localStorage.setItem("my_score",JSON.stringify(my_score));
+			}
+			
+			text = svg.selectAll(".MyText")[0];
+			text[1].textContent = "第" + (i+1) + "轮";
+			text[2].textContent = "你的得分      " + human_score;
+			text[3].textContent = "你对手的得分  " + computer_score;
+			text[4].textContent = "你目前的平均得分  " + (human_score*1.0/i).toFixed(2);
+			text[5].textContent = "你目前的期望得分  " + parseInt(human_score*1.0/i*500).toFixed(2);
+			var exp = parseInt(human_score*1.0/i*500).toFixed(2);
+			var rewward = (100*(exp - 7000)*1.0/4000+20).toFixed(2);
+			rewward = (rewward < 20)?20.0:(rewward > 120)?120.0:rewward;
+			svg.select(".AverPro")[0][0].textContent = "你目前的期望收益  " + rewward;
+		}
+	}    
+	
+	var button = svg
+		.append("rect")
+		.attr("transform","translate(" + 60 + "," + 700 + ")")
+		.attr("width", formw*2 )
+		.attr("height", formh*1.3 )
+		.attr("rx",20)
+		.attr("ry",20)
+		.attr("fill","LavenderBlush")
+		.attr("stroke-width",5)
+		.attr("stroke","pink")
+		.attr("fill-opacity",0.1)
+        .attr("stroke-opacity",0.9)
+		.on("click", open_rect);
+	var texts = svg.append("text")
+		.attr("class","myclick")
+		.attr("transform","translate(" + 180 + "," + 750 + ")")
+		.attr("font-size",30)
+		.text("单击此处")
+		.on("click", open_rect);
+	var texts = svg.append("text")
+		.attr("class","myclick")
+		.attr("transform","translate(" + 150 + "," + 790 + ")")
+		.attr("font-size",30)
+		.text("查看支付矩阵")
+		.on("click", open_rect);
+	
+	
+	var button = svg
+		.append("rect")
+		.attr("transform","translate(" + 60 + "," + 900 + ")")
+		.attr("width", formw*2 )
+		.attr("height", formh*1.3 )
+		.attr("rx",20)
+		.attr("ry",20)
+		.attr("fill","LavenderBlush")
+		.attr("stroke-width",5)
+		.attr("stroke","pink")
+		.attr("fill-opacity",0.1)
+        .attr("stroke-opacity",0.9)
+		.on("click", query_history);
+		
+	var button = svg
+		.append("rect")
+		.attr("class","MyRect")
+		.attr("transform","translate(" + 30 + "," + 1500 + ")")
+		.attr("width", formw*0.35 )
+		.attr("height", formh*0.35 )
+		.attr("fill","gold")
+		.on("click", query);
+	
+	var button = svg
+		.append("rect")
+		.attr("class","MyRect")
+		.attr("transform","translate(" + 130 + "," + 1500 + ")")
+		.attr("width", formw*0.35 )
+		.attr("height", formh*0.35 )
+		.attr("fill","gold")
+		.on("click", recover);
+	
+	var texts = svg.append("text")
+		.attr("class","myclick")
+		.attr("transform","translate(" + 180 + "," + 950 + ")")
+		.attr("font-size",30)
+		.text("单击此处")
+		.on("click", query_history);
+	var texts = svg.append("text")
+		.attr("class","myclick")
+		.attr("transform","translate(" + 150 + "," + 990 + ")")
+		.attr("font-size",30)
+		.text("查看历史记录")
+		.on("click", query_history);
+	
+	d3.select("#limit")
+        .on("mousemove",function(d,i){
+            price = this.value;
+			d3.select(".Myprice")[0][0].textContent = ("你下一轮将要选择的价格为："+this.value);
+        });
+	
+	/*打开支付矩阵*/
+	function open_rect()
+	{
+		window.open("rect.html");
+	}
+	
+	/*历史信息：20轮*/
+	function query_history()
+	{
+		var content = "历史信息查询\n轮数    你的价格    对手的价格    你的收益";
+		var num = 10;
+		if (i < 10) num = i;
+		for (var j=i-1;j>=i-num;j--)
+		{
+			content += ("\n"+(j+1));
+			if (j<9) content+="             ";
+			else if (j<99) content+="            ";
+			else content += "           ";
+			content +=(human[j]+"                "+computer[j]+"                "+my_score[j]);
+		}
+		alert(content);
+	}
+	
+	/*查看全部实验数据*/
+	function query()
+	{
+		if (prompt("请输入密码")=="srtp2018")
+	　　{
+			OpenWindow=window.open("",   "newwin",   "height=250,   width=250,toolbar=no   ,scrollbars="+"yes"+",menubar=no");      
+		　　//写成一行      
+		　　OpenWindow.document.write("<TITLE>例子</TITLE>")      
+		　　OpenWindow.document.write("<BODY   BGCOLOR=#ffffff>")      
+		　　OpenWindow.document.write("<h1>实验数据</h1>")      
+		　　OpenWindow.document.write("computer:"+computer+"\n")
+		　　OpenWindow.document.write("human:"+human+"\n")
+			OpenWindow.document.write("human_score:"+human_score+"\n")
+			OpenWindow.document.write("computer_score:"+computer_score+"\n")
+		　　OpenWindow.document.write("</BODY>")      
+		　　OpenWindow.document.write("</HTML>")      
+		　　OpenWindow.document.close()
+		}
+	}
+	
+	/*意外关闭或刷新后的数据恢复*/
+	function recover()
+	{
+		if (prompt("请输入密码")=="srtp2018")
+	　　{
+			computer = JSON.parse(localStorage.getItem("computer"));
+			human = JSON.parse(localStorage.getItem("human"));
+			reward = JSON.parse(localStorage.getItem("reward"));
+			re_count = JSON.parse(localStorage.getItem("re_count"));
+			i = parseInt(localStorage.getItem("i"));
+			human_score = parseInt(localStorage.getItem("human_score"));
+			computer_score = parseInt(localStorage.getItem("computer_score"));
+			my_score = JSON.parse(localStorage.getItem("my_score"));
+			
+			var text = svg.selectAll(".MyText")[0];
+			
+			text[1].textContent = "第" + (i+1) + "轮";
+			text[2].textContent = "你的得分      " + human_score;
+			text[3].textContent = "你对手的得分  " + computer_score;
+			text[4].textContent = "你目前的平均得分  " + (human_score*1.0/i).toFixed(2);
+			text[5].textContent = "你目前的期望得分  " + parseInt(human_score*1.0/i*500).toFixed(2);
+			var exp = parseInt(human_score*1.0/i*500).toFixed(2);
+			var rewward = (100*(exp - 7000)*1.0/4000+20).toFixed(2);
+			rewward = (rewward < 20)?20.0:(rewward > 120)?120.0:rewward;
+			svg.select(".AverPro")[0][0].textContent = "你目前的期望收益  " + rewward;
+			
+			var text = svg.select(".Mylastprice")[0][0];
+			text.textContent = "售价：" + human[i-1];
+			text = svg.select(".Comlastprice")[0][0];
+			text.textContent = "售价：" + computer[i-1];
+			
+			var cp, hp;
+			var cc, hc;
+			
+			if (computer[i-1] > human[i-1])
+			{
+				hp = payoff(human[i-1]);
+				hc = "Red";
+				cp = 0;
+				cp = "Green";
+			}
+			else if (computer[i-1] < human[i-1])
+			{
+				hp = 0;
+				hc = "Green";
+				cp = payoff(computer[i-1]);
+				cc = "Red";
+			}
+			else
+			{
+				hp = cp = payoff(human[i-1])/2;
+				hc = cc = "OrangeRed";
+			}
+			text = svg.select(".Myprofit")[0][0];
+			svg.select(".Myprofit").attr("color",hc);
+			text.textContent = hp;
+			text = svg.select(".Comprofit")[0][0];
+			svg.select(".Comprofit").attr("color",cc);
+			text.textContent = cp;
+			
+			if (computer[i-1] == human[i-1])
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 900 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1500 + "," + 500 + ")");
+			}
+			else if (computer[i-1]>human[i-1])
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 800 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1000 + "," + 500 + ")");
+			}
+			else
+			{
+				var img = svg.select(".c1").attr("transform","translate(" + 1400 + "," + 500 + ")");
+				img = svg.select(".c2").attr("transform","translate(" + 1600 + "," + 500 + ")");			
+			}
+		}
+
+	}
+	
+</script>
+</body>
+</html>

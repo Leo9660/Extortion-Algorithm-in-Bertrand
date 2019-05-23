@@ -1,0 +1,189 @@
+<html>  
+<head>  
+	<meta charset="utf-8">  
+	<title>支付矩阵</title>  
+</head>
+<style>
+	.axis path,
+	.axis line{
+		fill: none;
+		stroke: black;
+		shape-rendering: crispEdges;
+	}
+
+	.axis text {
+		font-family: sans-serif;
+		font-size: 11px;
+	}
+
+	.MyRect {
+
+	}
+
+	.MyText {
+		fill: black;
+		text-anchor: middle;
+	}
+	input[type=range]{ 
+		 margin-top: 8px;
+	         outline: none; 
+		 -webkit-appearance: none;/*清除系统默认样式*/  
+		 background: -webkit-linear-gradient(#61bd12, #61bd12) no-repeat, #ddd;  
+	         background-size: 100%;/*设置左右宽度比例*/  
+		height: 3px;/*横条的高度*/  
+	} 
+ /*拖动块的样式*/  
+   input[type=range]::-webkit-slider-thumb {  
+	 -webkit-appearance: none;/*清除系统默认样式*/  
+	height:16px;/*拖动块高度*/  
+        width: 16px;/*拖动块宽度*/  
+        background:LightPink;/*拖动块背景*/  
+	border-radius: 50%; /*外观设置为圆形*/  
+	 border: solid 1px #ddd; /*设置边框*/  
+}
+</style>
+
+<body> 
+	<script src="d3.js" charset="utf-8"></script>
+	<script>
+	document.write("<div id='tip' style='position:absolute; width:600px; z-index:1; background-color: #ffffff; border: 1px solid gray; overflow: visible;visibility: hidden;font-size:24px;padding:12px;color:#333333'></div>")
+	function showtip(w){
+	 var x=event.x;
+	 var y=event.y;
+	 tip.innerHTML=w;
+	 tip.style.visibility="visible";
+	 tip.style.left=x+10;
+	 tip.style.top=y+10;
+	  tip.style.pixelTop=y+document.body.scrollTop+10;
+	}
+	function hidetip(){
+	 tip.style.innerHTML=""
+	 tip.style.visibility="hidden";
+	}
+	var width = 4000;
+	var height = 1600;
+	var svg = d3.select("body")
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+	var formapos = {left:100, top:180}
+	var forma = new Array();
+	var formh = 100;
+	var formw = 180;
+	var rsetoff = 200;
+	var price = [{i:1},{i:2},{i:3},{i:4},{i:5},{i:6},{i:7},{i:8}];
+	
+	for (var x=1;x<=8;x++)
+	{
+		for (var y=1;y<=8;y++)
+		{
+			var q = "";
+			if (x < y) q = "0";
+			else if (x > y) q = payoff(y);
+			else q = payoff(x)/2;
+			forma[(x-1)*8+y-1] = {i:x-1,j:y-1,p:q};
+		}
+	}
+	//console.log(forma);
+	function payoff(x)
+	{
+		return (16-x)*(x-1);
+	}
+	var texts = svg.selectAll(".MyText")
+		.data(price)
+		.enter()
+		.append("text")
+		.attr("class","priceText1")
+		.attr("transform", "translate(" + (rsetoff+formapos.left+(formw/2-10)) + "," + (formapos.top-40) + ")")
+		.attr("x", function(d, i){return (d.i-1)*180;})
+		.attr("font-size",30)
+		.text(function(d,i){return d.i;});
+	var texts = svg.selectAll(".MyText")
+		.data(price)
+		.enter()
+		.append("text")
+		.attr("class","priceText1")
+		.attr("transform", "translate(" + (rsetoff+formapos.left-40) + "," + (formapos.top+70) + ")")
+		.attr("y", function(d, i){return (d.i-1)*100;})
+		.attr("font-size",30)
+		.text(function(d,i){return d.i;});
+	var rects = svg.selectAll(".MyRect")
+		.data(forma)
+		.enter()
+		.append("rect")
+		.attr("class","MyRect")
+		.attr("transform","translate(" + (rsetoff+formapos.left) + "," + formapos.top + ")")
+		.attr("x", function(d){return d.i*180;})
+		.attr("y", function(d){return d.j*100;})
+		.attr("width", formw )
+		.attr("height", formh )
+		.attr("fill","LavenderBlush")
+		.attr("stroke","BLACK")
+		.on("mouseover",function(d,i){
+			d3.select(this)
+				.attr("fill","yellow");
+			var content1,content2;
+			var x = parseInt(i/8)+1;
+			var y = (i%8)+1;
+			content1 = "你的价格为"+y+"，你对手的价格为"+x;
+			if (y>x) content2 = "你的对手价格较低，占有全部市场，因此你的收益为0，你对手的收益为"+payoff(x);
+			else if (y==x) content2 = "你和对手价格相同，平分市场，你和对手的收益均为"+(payoff(x)/2);
+			else content2 = "\n你的价格较低，占有全部市场，因此你的收益为"+payoff(y)+"，你对手的收益为0";
+			showtip('<b>'+content1+'</b><br>'+content2+'<br>');
+		})
+		.on("mouseout",function(d,i){
+			d3.select(this)
+				.transition()
+		        .duration(500)
+				.attr("fill","LavenderBlush");
+			console.log(d3.select(".MyRect"));
+			hidetip();
+		});
+	var texts = svg.selectAll(".MyText")
+		.data(forma)
+		.enter()
+		.append("text")
+		.attr("class","OverallText")
+		.attr("transform","translate(" + (rsetoff+formapos.left) + "," + formapos.top + ")")
+		.attr("x", function(d, i){return 70+d.i*180;})
+		.attr("y", function(d, i){return 60+d.j*100;})
+		.attr("font-size",40)
+		.text(function(d, i){return d.p;})
+		.on("mouseover",function(d,i){
+			var content1,content2;
+			var x = parseInt(i/8)+1;
+			var y = (i%8)+1;
+			content1 = "你的价格为"+y+"，你对手的价格为"+x;
+			if (y>x) content2 = "你的对手价格较低，占有全部市场，因此你的收益为0，你对手的收益为"+payoff(x);
+			else if (y==x) content2 = "你和对手价格相同，平分市场，你和对手的收益均为"+(payoff(x)/2);
+			else content2 = "\n你的价格较低，占有全部市场，因此你的收益为"+payoff(y)+"，你对手的收益为0";
+			showtip('<b>'+content1+'</b><br>'+content2+'<br>');
+		})
+		.on("mouseout",function(d,i){
+			d3.select(this)
+				.transition()
+		        .duration(500)
+			hidetip();
+		});
+	var texts = svg
+		.append("text")
+		.attr("class","MyText")
+		.attr("transform","translate(" + (860+rsetoff) + "," + 60 + ")")
+		.attr("font-size",30)
+		.text("你对手的价格");
+	var str = "你,的,价,格";
+	var strs = str.split(",");
+	var text = svg.append("text")  
+		.attr("font-size","30px")  
+		.attr("x",rsetoff-50)  
+		.attr("y",480)
+	var texts = text.selectAll("tspan")  
+		.data(strs)  
+		.enter()  
+		.append("tspan")  
+		.attr("x",text.attr("x"))  
+		.attr("dy","1em")  
+		.text(function(d){return d})
+	</script>
+</body>
+</html>
