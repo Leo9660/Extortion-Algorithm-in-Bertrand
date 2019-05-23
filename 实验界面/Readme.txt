@@ -1,1 +1,1 @@
-��index.html���ɿ�ʼʵ�顣
+打开index.html即可开始实验。
